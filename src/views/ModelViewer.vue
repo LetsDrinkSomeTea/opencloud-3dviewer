@@ -149,7 +149,7 @@ const loadModel = async () => {
     // If extension is not provided, try to extract it from the filename or path
     if (!extension) {
       const fileName = currentFileContext.name || currentFileContext.path || ''
-      const match = fileName.match(/\.([^.]+)$/)
+      const match = fileName.match(/\.([^./\\]+)$/)
       if (match) {
         extension = match[1].toLowerCase()
       }
