@@ -123,6 +123,21 @@ const loadModel = async () => {
 
   // Remove previous model
   if (currentModel) {
+    // Dispose of geometries and materials to free GPU memory
+    currentModel.traverse((child) => {
+      if (child instanceof THREE.Mesh) {
+        if (child.geometry) {
+          child.geometry.dispose()
+        }
+        if (child.material) {
+          if (Array.isArray(child.material)) {
+            child.material.forEach((mat) => mat.dispose())
+          } else {
+            child.material.dispose()
+          }
+        }
+      }
+    })
     scene.remove(currentModel)
     currentModel = null
   }
@@ -145,16 +160,18 @@ const loadModel = async () => {
 
     let object: THREE.Object3D | null = null
 
+    // Create a shared material for efficiency
+    const sharedMaterial = new THREE.MeshPhongMaterial({
+      color: 0x9333ea,
+      specular: 0x111111,
+      shininess: 200
+    })
+
     switch (extension) {
       case 'stl': {
         const loader = new STLLoader()
         const geometry = await loader.loadAsync(url)
-        const material = new THREE.MeshPhongMaterial({
-          color: 0x9333ea,
-          specular: 0x111111,
-          shininess: 200
-        })
-        object = new THREE.Mesh(geometry, material)
+        object = new THREE.Mesh(geometry, sharedMaterial)
         break
       }
       case 'obj': {
@@ -163,11 +180,7 @@ const loadModel = async () => {
         // Apply purple color to all meshes in the object
         object.traverse((child) => {
           if (child instanceof THREE.Mesh) {
-            child.material = new THREE.MeshPhongMaterial({
-              color: 0x9333ea,
-              specular: 0x111111,
-              shininess: 200
-            })
+            child.material = sharedMaterial
           }
         })
         break
@@ -197,11 +210,7 @@ const loadModel = async () => {
         // Apply purple color to all meshes
         object.traverse((child) => {
           if (child instanceof THREE.Mesh) {
-            child.material = new THREE.MeshPhongMaterial({
-              color: 0x9333ea,
-              specular: 0x111111,
-              shininess: 200
-            })
+            child.material = sharedMaterial
           }
         })
         break
@@ -223,8 +232,10 @@ const loadModel = async () => {
 
       // Scale the model to fit in view
       const maxDim = Math.max(size.x, size.y, size.z)
-      const scale = 2 / maxDim
-      object.scale.multiplyScalar(scale)
+      if (maxDim > 0) {
+        const scale = 2 / maxDim
+        object.scale.multiplyScalar(scale)
+      }
 
       // Add to scene
       scene.add(object)
