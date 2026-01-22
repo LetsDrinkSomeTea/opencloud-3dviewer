@@ -1,11 +1,11 @@
 {
-  "name": "web-app-skeleton",
-  "version": "1.1.0",
-  "description": "All the bits and pieces for an easy start to build your own web apps and extensions for OpenCloud.",
+  "name": "web-app-3dviewer",
+  "version": "1.0.0",
+  "description": "OpenCloud 3D Model Viewer - View 3D models (3mf, obj, stl, and more) in the browser.",
   "license": "Apache-2.0",
   "author": "OpenCloud",
   "private": true,
-  "homepage": "https://github.com/opencloud-eu/web-app-skeleton",
+  "homepage": "https://github.com/LetsDrinkSomeTea/opencloud-3dviewer",
   "type": "module",
   "scripts": {
     "build": "pnpm vite build",
@@ -23,6 +23,7 @@
     "@opencloud-eu/web-client": "^4.0.0",
     "@opencloud-eu/web-pkg": "^4.0.0",
     "@types/node": "^24.0.0",
+    "@types/three": "^0.172.0",
     "@vue/test-utils": "^2.4.6",
     "eslint": "^9.22.0",
     "happy-dom": "^20.0.0",
@@ -38,7 +39,8 @@
     "vue3-gettext": "^2.4.0"
   },
   "dependencies": {
-    "@opencloud-eu/extension-sdk": "^4.1.0-alpha.2"
+    "@opencloud-eu/extension-sdk": "^4.1.0-alpha.2",
+    "three": "^0.172.0"
   },
   "packageManager": "pnpm@10.18.1"
 }

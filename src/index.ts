@@ -1,63 +1,84 @@
-import {
-  defineWebApplication,
-  ApplicationSetupOptions,
-  Extension,
-  AppMenuItemExtension
-} from '@opencloud-eu/web-pkg'
-import { urlJoin } from '@opencloud-eu/web-client'
+import { defineWebApplication, Extension, AppWrapperRoute } from '@opencloud-eu/web-pkg'
 import '@opencloud-eu/extension-sdk/tailwind.css'
 import { RouteRecordRaw } from 'vue-router'
 import { computed } from 'vue'
 import { useGettext } from 'vue3-gettext'
+import ModelViewer from './views/ModelViewer.vue'
+
+const applicationId = '3dviewer'
 
 export default defineWebApplication({
   setup(args) {
     const { $gettext } = useGettext()
 
     const appInfo = {
-      id: 'skeleton',
-      name: $gettext('Skeleton'),
-      icon: 'cup',
-      color: '#622a0f'
+      id: applicationId,
+      name: $gettext('3D Viewer'),
+      icon: 'box-2',
+      iconFillType: 'line' as const,
+      iconColor: '#9333ea',
+      extensions: [
+        {
+          extension: '3mf',
+          routeName: '3dviewer',
+          canBeDefault: true
+        },
+        {
+          extension: 'obj',
+          routeName: '3dviewer',
+          canBeDefault: true
+        },
+        {
+          extension: 'stl',
+          routeName: '3dviewer',
+          canBeDefault: true
+        },
+        {
+          extension: 'ply',
+          routeName: '3dviewer',
+          canBeDefault: true
+        },
+        {
+          extension: 'gltf',
+          routeName: '3dviewer',
+          canBeDefault: true
+        },
+        {
+          extension: 'glb',
+          routeName: '3dviewer',
+          canBeDefault: true
+        }
+      ]
     }
 
     const routes: RouteRecordRaw[] = [
       {
-        path: '/',
-        redirect: `/${appInfo.id}/hello`
-      },
-      {
-        path: '/hello',
-        name: 'hello',
-        component: () => import('./views/Hello.vue'),
+        name: '3dviewer',
+        path: '/:driveAliasAndItem(.*)?',
+        component: AppWrapperRoute(ModelViewer, {
+          applicationId,
+          urlForResourceOptions: {
+            disposition: 'inline'
+          }
+        }),
         meta: {
-          authContext: 'user',
-          title: $gettext('Hello')
+          authContext: 'hybrid',
+          title: $gettext('3D Viewer'),
+          patchCleanPath: true
         }
       }
     ]
 
-    const extensions = ({ applicationConfig }: ApplicationSetupOptions) => {
+    const extensions = () => {
       return computed<Extension[]>(() => {
-        const menuItems: AppMenuItemExtension[] = [
-          {
-            // registers a menu item for the app switcher
-            id: `app.${appInfo.id}.menuItem`,
-            type: 'appMenuItem',
-            label: () => appInfo.name,
-            color: appInfo.color,
-            icon: appInfo.icon,
-            path: urlJoin(appInfo.id)
-          }
-        ]
-        return [...menuItems]
+        return []
       })
     }
 
     return {
       appInfo,
       routes,
-      extensions: extensions(args)
+      extensions: extensions()
     }
   }
 })
