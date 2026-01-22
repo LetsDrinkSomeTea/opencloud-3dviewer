@@ -1,18 +1,11 @@
 # Changelog
 
-## [1.1.0](https://github.com/opencloud-eu/web-app-skeleton/releases/tag/v1.1.0) - 2025-10-02
+## [1.0.0] - 2026-01-22
 
 ### ✨ Features
 
-- Migrate to Tailwind [[#94](https://github.com/opencloud-eu/web-app-skeleton/pull/94)]
-- Use manifest generator [[#94](https://github.com/opencloud-eu/web-app-skeleton/pull/94)]
-
-### 📦️ Dependencies
-
-- Update OpenCloud web ecosystem to v4 [[#84](https://github.com/opencloud-eu/web-app-skeleton/pull/84)]
-
-## [1.0.0](https://github.com/opencloud-eu/web-app-skeleton/releases/tag/v1.0.0) - 2025-02-27
-
-### ✨ Features
-
-- Create web-app-skeleton [[#22](https://github.com/opencloud-eu/web-app-skeleton/pull/22)]
+- Create OpenCloud 3D Model Viewer webapp
+- Support for multiple 3D file formats: 3MF, OBJ, STL, PLY, GLTF, GLB
+- Interactive 3D viewer with Three.js
+- Orbit controls for rotating, zooming, and panning
+- Purple theme with box-2 icon

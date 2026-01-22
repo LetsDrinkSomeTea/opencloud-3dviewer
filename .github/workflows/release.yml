@@ -1,0 +1,76 @@
+name: Release
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10.18.1
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        run: pnpm install --no-frozen-lockfile
+
+      - name: Build
+        run: pnpm build
+
+      - name: Prepare release directory
+        run: |
+          mkdir -p release/3dviewer
+          cp -r dist/* release/3dviewer/
+
+      - name: Create release archive
+        run: |
+          cd release
+          zip -r ../3dviewer.zip 3dviewer/
+          cd ..
+
+      - name: Get version from package.json
+        id: package_version
+        run: echo "version=$(node -p "require('./package.json').version")" >> $GITHUB_OUTPUT
+
+      - name: Get current date
+        id: date
+        run: echo "date=$(date +'%Y%m%d-%H%M%S')" >> $GITHUB_OUTPUT
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: v${{ steps.package_version.outputs.version }}-${{ steps.date.outputs.date }}
+          name: Release v${{ steps.package_version.outputs.version }}-${{ steps.date.outputs.date }}
+          body: |
+            Automated release of 3D Viewer webapp
+            
+            Version: ${{ steps.package_version.outputs.version }}
+            Built: ${{ steps.date.outputs.date }}
+            
+            ## Installation
+            1. Download `3dviewer.zip`
+            2. Extract the archive
+            3. Deploy the `3dviewer` folder to your OpenCloud instance
+            
+            See [app installation docs](https://docs.opencloud.eu/docs/admin/configuration/web-applications) for details.
+          files: |
+            3dviewer.zip
+          draft: false
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
