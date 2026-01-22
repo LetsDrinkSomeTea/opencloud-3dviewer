@@ -143,7 +143,17 @@ const loadModel = async () => {
   }
 
   try {
-    const extension = currentFileContext.extension?.toLowerCase() || ''
+    // Get the file extension from currentFileContext.extension or extract from filename
+    let extension = currentFileContext.extension?.toLowerCase() || ''
+
+    // If extension is not provided, try to extract it from the filename or path
+    if (!extension) {
+      const fileName = currentFileContext.name || currentFileContext.path || ''
+      const match = fileName.match(/\.([^./\\]+)$/)
+      if (match) {
+        extension = match[1].toLowerCase()
+      }
+    }
 
     // Convert base64 or text content to blob
     let blob: Blob
