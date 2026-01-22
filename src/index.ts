@@ -8,7 +8,7 @@ import ModelViewer from './views/ModelViewer.vue'
 const applicationId = '3dviewer'
 
 export default defineWebApplication({
-  setup(args) {
+  setup() {
     const { $gettext } = useGettext()
 
     const appInfo = {

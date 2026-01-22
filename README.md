@@ -1,6 +1,15 @@
-# web-app-skeleton
+# web-app-3dviewer
 
-This repository provides all the bits and pieces for an easy start to build your own web app or extension for OpenCloud.
+OpenCloud 3D Model Viewer - View 3D models (3mf, obj, stl, and more) in the browser.
+
+This webapp allows you to view 3D model files directly in your OpenCloud instance. It supports various 3D file formats including:
+- **3MF** (3D Manufacturing Format)
+- **OBJ** (Wavefront Object)
+- **STL** (Stereolithography)
+- **PLY** (Polygon File Format)
+- **GLTF/GLB** (GL Transmission Format)
+
+The viewer uses Three.js for rendering and provides interactive controls to rotate, zoom, and pan the 3D models.
 
 ## Getting Started
 
@@ -33,17 +42,9 @@ Currently local development requires docker and is only supported on Linux and m
 
 ### Develop Your App
 
-You can start developing your app by modifying the files in the `src` folder. The development server will automatically reload your changes as long as you keep a running process of `pnpm build:w`. In this setup you currently need a page reload to see your changes.
+You can continue developing the 3D viewer app by modifying the files in the `src` folder. The development server will automatically reload your changes as long as you keep a running process of `pnpm build:w`. In this setup you currently need a page reload to see your changes.
 
-You should start by rephrasing the app name `skeleton` to your desired app name in the following files:
-
-- package.json
-- vite.config.ts
-- dev/docker/opencloud/apps.yaml (if you need config for your app)
-- src/index.ts
-- tests/unit/App.spec.ts
-
-Don't forget to rename the root directory as well.
+The main viewer component is located in `src/views/ModelViewer.vue` and handles all 3D model rendering using Three.js.
 
 More details and examples about app/extension development are available in the [developer documentation](https://docs.opencloud.eu/docs/dev/web/extension-system/).
 
