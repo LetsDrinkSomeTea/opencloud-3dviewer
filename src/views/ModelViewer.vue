@@ -155,18 +155,25 @@ const loadModel = async () => {
       }
     }
 
-    // Convert base64 or text content to blob
-    let blob: Blob
-    if (currentContent.startsWith('data:')) {
-      // Handle data URL
-      const response = await fetch(currentContent)
-      blob = await response.blob()
-    } else {
-      // Handle text content (e.g., OBJ files)
-      blob = new Blob([currentContent], { type: 'text/plain' })
-    }
+    // Determine if currentContent is a URL or actual content
+    let url: string
+    let needsCleanup = false
 
-    const url = URL.createObjectURL(blob)
+    if (currentContent.startsWith('data:') || currentContent.startsWith('blob:') ||
+        currentContent.startsWith('http://') || currentContent.startsWith('https://')) {
+      // currentContent is already a URL (data URL, blob URL, or http URL)
+      // Use it directly without creating a new blob
+      url = currentContent
+    } else {
+      // currentContent contains actual file content
+      // Convert to blob and create object URL
+      const blob: Blob = new Blob([currentContent], { type: 'text/plain' })
+      // For text-based formats like OBJ, create a text blob
+      // For binary formats, we'd need the raw data, but in practice
+      // binary files should come as URLs from the framework
+      url = URL.createObjectURL(blob)
+      needsCleanup = true
+    }
 
     let object: THREE.Object3D | null = null
 
@@ -229,7 +236,9 @@ const loadModel = async () => {
         throw new Error(`Unsupported file format: ${extension}`)
     }
 
-    URL.revokeObjectURL(url)
+    if (needsCleanup) {
+      URL.revokeObjectURL(url)
+    }
 
     if (object) {
       // Center and scale the model
