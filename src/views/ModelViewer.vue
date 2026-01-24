@@ -6,12 +6,31 @@
     <div v-else-if="loading" class="ext:p-4">
       <p>{{ $gettext('Loading 3D model...') }}</p>
     </div>
-    <div ref="canvasContainer" class="ext:flex-1 ext:relative ext:bg-gray-100" @wheel="onWheel">
+    <div ref="canvasContainer" class="ext:flex-1 ext:relative ext:bg-gray-100 dark:ext:bg-gray-900" @wheel="onWheel">
       <!-- Control Panel -->
-      <div v-if="!loading && !error" class="ext:absolute ext:top-4 ext:right-4 ext:bg-white ext:rounded-lg ext:shadow-lg ext:p-3 ext:space-y-3 ext:z-10">
-        <div class="ext:text-sm ext:font-semibold ext:text-gray-700 ext:mb-2">
+      <div
+        v-if="!loading && !error"
+        :class="[
+          'ext:absolute ext:top-4 ext:right-4 ext:rounded-lg ext:shadow-lg ext:p-3 ext:space-y-3 ext:z-10',
+          isDarkMode ? 'ext:bg-gray-800' : 'ext:bg-white'
+        ]"
+      >
+        <div :class="['ext:text-sm ext:font-semibold ext:mb-2', isDarkMode ? 'ext:text-gray-200' : 'ext:text-gray-700']">
           {{ $gettext('View Options') }}
         </div>
+
+        <!-- Dark Mode Toggle -->
+        <label class="ext:flex ext:items-center ext:cursor-pointer">
+          <input
+            type="checkbox"
+            v-model="isDarkMode"
+            @change="toggleDarkMode"
+            class="ext:mr-2"
+          />
+          <span :class="['ext:text-sm', isDarkMode ? 'ext:text-gray-300' : 'ext:text-gray-700']">
+            {{ $gettext('Dark Mode') }}
+          </span>
+        </label>
 
         <!-- Grid Toggle -->
         <label class="ext:flex ext:items-center ext:cursor-pointer">
@@ -21,7 +40,9 @@
             @change="toggleGrid"
             class="ext:mr-2"
           />
-          <span class="ext:text-sm ext:text-gray-700">{{ $gettext('Show Grid') }}</span>
+          <span :class="['ext:text-sm', isDarkMode ? 'ext:text-gray-300' : 'ext:text-gray-700']">
+            {{ $gettext('Show Grid') }}
+          </span>
         </label>
 
         <!-- Axes Toggle -->
@@ -32,18 +53,23 @@
             @change="toggleAxes"
             class="ext:mr-2"
           />
-          <span class="ext:text-sm ext:text-gray-700">{{ $gettext('Show Axes') }}</span>
+          <span :class="['ext:text-sm', isDarkMode ? 'ext:text-gray-300' : 'ext:text-gray-700']">
+            {{ $gettext('Show Axes') }}
+          </span>
         </label>
 
         <!-- Up Axis Selection -->
         <div class="ext:border-t ext:pt-2">
-          <div class="ext:text-xs ext:font-semibold ext:text-gray-600 ext:mb-1">
+          <div :class="['ext:text-xs ext:font-semibold ext:mb-1', isDarkMode ? 'ext:text-gray-400' : 'ext:text-gray-600']">
             {{ $gettext('Up Axis') }}
           </div>
           <select
             v-model="upAxis"
             @change="changeUpAxis"
-            class="ext:w-full ext:text-sm ext:border ext:rounded ext:px-2 ext:py-1 ext:text-gray-700"
+            :class="[
+              'ext:w-full ext:text-sm ext:border ext:rounded ext:px-2 ext:py-1',
+              isDarkMode ? 'ext:bg-gray-700 ext:text-gray-200 ext:border-gray-600' : 'ext:bg-white ext:text-gray-700 ext:border-gray-300'
+            ]"
           >
             <option value="Y">{{ $gettext('Y-up') }}</option>
             <option value="Z">{{ $gettext('Z-up (CAD/3D Print)') }}</option>
@@ -53,13 +79,16 @@
 
         <!-- Render Mode -->
         <div class="ext:border-t ext:pt-2">
-          <div class="ext:text-xs ext:font-semibold ext:text-gray-600 ext:mb-1">
+          <div :class="['ext:text-xs ext:font-semibold ext:mb-1', isDarkMode ? 'ext:text-gray-400' : 'ext:text-gray-600']">
             {{ $gettext('Render Mode') }}
           </div>
           <select
             v-model="renderMode"
             @change="changeRenderMode"
-            class="ext:w-full ext:text-sm ext:border ext:rounded ext:px-2 ext:py-1 ext:text-gray-700"
+            :class="[
+              'ext:w-full ext:text-sm ext:border ext:rounded ext:px-2 ext:py-1',
+              isDarkMode ? 'ext:bg-gray-700 ext:text-gray-200 ext:border-gray-600' : 'ext:bg-white ext:text-gray-700 ext:border-gray-300'
+            ]"
           >
             <option value="solid">{{ $gettext('Solid') }}</option>
             <option value="wireframe">{{ $gettext('Wireframe') }}</option>
@@ -69,7 +98,7 @@
 
         <!-- Model Color -->
         <div class="ext:border-t ext:pt-2">
-          <div class="ext:text-xs ext:font-semibold ext:text-gray-600 ext:mb-1">
+          <div :class="['ext:text-xs ext:font-semibold ext:mb-1', isDarkMode ? 'ext:text-gray-400' : 'ext:text-gray-600']">
             {{ $gettext('Model Color') }}
           </div>
           <div class="ext:flex ext:gap-2 ext:flex-wrap">
@@ -79,7 +108,7 @@
               @click="changeModelColor(color)"
               :class="[
                 'ext:w-6 ext:h-6 ext:rounded ext:border-2 ext:cursor-pointer ext:transition-transform hover:ext:scale-110',
-                modelColor === color ? 'ext:border-gray-800' : 'ext:border-gray-300'
+                modelColor === color ? (isDarkMode ? 'ext:border-gray-200' : 'ext:border-gray-800') : (isDarkMode ? 'ext:border-gray-600' : 'ext:border-gray-300')
               ]"
               :style="{ backgroundColor: color }"
               :title="color"
@@ -89,13 +118,16 @@
 
         <!-- Lighting Mode -->
         <div class="ext:border-t ext:pt-2">
-          <div class="ext:text-xs ext:font-semibold ext:text-gray-600 ext:mb-1">
+          <div :class="['ext:text-xs ext:font-semibold ext:mb-1', isDarkMode ? 'ext:text-gray-400' : 'ext:text-gray-600']">
             {{ $gettext('Lighting') }}
           </div>
           <select
             v-model="lightingMode"
             @change="changeLighting"
-            class="ext:w-full ext:text-sm ext:border ext:rounded ext:px-2 ext:py-1 ext:text-gray-700"
+            :class="[
+              'ext:w-full ext:text-sm ext:border ext:rounded ext:px-2 ext:py-1',
+              isDarkMode ? 'ext:bg-gray-700 ext:text-gray-200 ext:border-gray-600' : 'ext:bg-white ext:text-gray-700 ext:border-gray-300'
+            ]"
           >
             <option value="bright">{{ $gettext('Bright') }}</option>
             <option value="soft">{{ $gettext('Soft') }}</option>
@@ -171,7 +203,15 @@ const showAxes = ref(true)
 const renderMode = ref<'solid' | 'wireframe' | 'points'>('solid')
 const modelColor = ref(AVAILABLE_COLORS[0])
 const lightingMode = ref<'bright' | 'soft' | 'dramatic'>('bright')
-const upAxis = ref<'Y' | 'Z' | 'X'>('Z') // Default Z-up (common for CAD/3D printing)
+const upAxis = ref<'Y' | 'Z' | 'X'>('Z')
+const isDarkMode = ref(false)
+
+// Detect system preference on mount
+const initDarkMode = () => {
+  if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
+    isDarkMode.value = true
+  }
+}
 
 // Three.js scene objects
 let scene: THREE.Scene
@@ -186,12 +226,19 @@ let ambientLight: THREE.AmbientLight | null = null
 let directionalLight1: THREE.DirectionalLight | null = null
 let directionalLight2: THREE.DirectionalLight | null = null
 
+// Helper function to update scene background based on dark mode
+const updateSceneBackground = () => {
+  if (!scene) return
+  // Light gray for light mode, dark gray for dark mode
+  scene.background = new THREE.Color(isDarkMode.value ? 0x1f2937 : 0xf3f4f6)
+}
+
 const initScene = () => {
   if (!canvasContainer.value) return
 
   // Scene setup
   scene = new THREE.Scene()
-  scene.background = new THREE.Color(0xf3f4f6)
+  updateSceneBackground()
 
   // Camera setup
   camera = new THREE.PerspectiveCamera(
@@ -418,7 +465,7 @@ const positionAndScaleModel = (object: THREE.Object3D) => {
 const applyUpAxisRotation = (object: THREE.Object3D) => {
   // Reset rotation first
   object.rotation.set(0, 0, 0)
-  
+
   // Three.js uses Y-up by default
   // Apply rotation to convert from other coordinate systems
   switch (upAxis.value) {
@@ -551,11 +598,16 @@ const changeUpAxis = () => {
   currentModel.position.y -= scaledCenter.y - scaledSize.y / 2
 }
 
+const toggleDarkMode = () => {
+  updateSceneBackground()
+}
+
 const onWheel = (event: WheelEvent) => {
   event.preventDefault()
 }
 
 onMounted(() => {
+  initDarkMode()
   initScene()
 
   if (props.url) {
