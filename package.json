@@ -1,10 +1,10 @@
 {
   "name": "web-app-3dviewer",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "OpenCloud 3D Model Viewer - View 3D models (3mf, obj, stl, and more) in the browser.",
   "license": "Apache-2.0",
-  "author": "OpenCloud",
-  "private": true,
+  "author": "LetsDrinkSomeTea",
+  "private": false,
   "homepage": "https://github.com/LetsDrinkSomeTea/opencloud-3dviewer",
   "type": "module",
   "scripts": {
