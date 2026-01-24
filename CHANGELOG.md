@@ -8,4 +8,3 @@
 - Support for multiple 3D file formats: 3MF, OBJ, STL, PLY, GLTF, GLB
 - Interactive 3D viewer with Three.js
 - Orbit controls for rotating, zooming, and panning
-- Purple theme with box-2 icon
