@@ -4,12 +4,21 @@ OpenCloud 3D Model Viewer - View 3D models (3mf, obj, stl, and more) in the brow
 
 This webapp allows you to view 3D model files directly in your OpenCloud instance. It supports various 3D file formats including:
 - **3MF** (3D Manufacturing Format)
+- **STL** (Stereolithography - ASCII and binary)
 - **OBJ** (Wavefront Object)
-- **STL** (Stereolithography)
-- **PLY** (Polygon File Format)
-- **GLTF/GLB** (GL Transmission Format)
+- **PLY** (Polygon File Format - ASCII and binary)
+- **GLTF/GLB** (GL Transmission Format - text and binary)
 
 The viewer uses Three.js for rendering and provides interactive controls to rotate, zoom, and pan the 3D models.
+
+## Implementation Details
+
+This app uses `AppWrapperRoute` with `urlForResourceOptions: { disposition: 'inline' }` which provides a direct URL to the file content. This approach:
+- Works with both text and binary file formats
+- Bypasses UTF-8 encoding issues that corrupt binary data when passed as strings
+- Allows Three.js loaders to fetch files directly from the server
+
+The component receives a `url` prop from `AppWrapperRoute` and passes it directly to the appropriate Three.js loader based on the file extension.
 
 ## Getting Started
 
