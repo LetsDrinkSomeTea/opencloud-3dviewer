@@ -3,10 +3,26 @@
     <div v-if="error" class="ext:p-4 ext:text-red-600">
       <p>{{ $gettext('Error loading 3D model:') }} {{ error }}</p>
     </div>
-    <div v-else-if="loading" class="ext:p-4">
-      <p>{{ $gettext('Loading 3D model...') }}</p>
-    </div>
     <div ref="canvasContainer" class="ext:flex-1 ext:relative ext:bg-gray-100 dark:ext:bg-gray-900" @wheel="onWheel">
+      <!-- Loading Overlay -->
+      <div
+        v-if="loading"
+        class="ext:absolute ext:inset-0 ext:flex ext:items-center ext:justify-center ext:z-20"
+        :class="isDarkMode ? 'ext:bg-gray-900' : 'ext:bg-gray-100'"
+      >
+        <div class="ext:text-center">
+          <div class="ext:mb-4">
+            <svg class="ext:animate-spin ext:h-12 ext:w-12 ext:mx-auto" :class="isDarkMode ? 'ext:text-gray-400' : 'ext:text-gray-600'" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+              <circle class="ext:opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+              <path class="ext:opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+            </svg>
+          </div>
+          <p :class="['ext:text-lg', isDarkMode ? 'ext:text-gray-300' : 'ext:text-gray-700']">
+            {{ $gettext('Loading 3D model...') }}
+          </p>
+        </div>
+      </div>
+      
       <!-- Control Panel -->
       <div
         v-if="!loading && !error"
@@ -140,7 +156,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, onBeforeUnmount, watch } from 'vue'
+import { ref, onMounted, onBeforeUnmount, watch, nextTick } from 'vue'
 import { useGettext } from 'vue3-gettext'
 import * as THREE from 'three'
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js'
@@ -225,12 +241,25 @@ let axesHelper: THREE.AxesHelper | null = null
 let ambientLight: THREE.AmbientLight | null = null
 let directionalLight1: THREE.DirectionalLight | null = null
 let directionalLight2: THREE.DirectionalLight | null = null
+let resizeObserver: ResizeObserver | null = null
 
 // Helper function to update scene background based on dark mode
 const updateSceneBackground = () => {
   if (!scene) return
   // Light gray for light mode, dark gray for dark mode
   scene.background = new THREE.Color(isDarkMode.value ? 0x1f2937 : 0xf3f4f6)
+}
+
+const updateRendererSize = () => {
+  if (!canvasContainer.value) return
+  const width = canvasContainer.value.clientWidth
+  const height = canvasContainer.value.clientHeight
+  
+  if (width > 0 && height > 0) {
+    camera.aspect = width / height
+    camera.updateProjectionMatrix()
+    renderer.setSize(width, height)
+  }
 }
 
 const initScene = () => {
@@ -251,9 +280,11 @@ const initScene = () => {
 
   // Renderer setup
   renderer = new THREE.WebGLRenderer({ antialias: true })
-  renderer.setSize(canvasContainer.value.clientWidth, canvasContainer.value.clientHeight)
   renderer.setPixelRatio(window.devicePixelRatio)
   canvasContainer.value.appendChild(renderer.domElement)
+  
+  // Initial size
+  updateRendererSize()
 
   // Add helpers
   gridHelper = new THREE.GridHelper(GRID_SIZE, GRID_SIZE, 0xcccccc, 0xe0e0e0)
@@ -294,12 +325,15 @@ const initScene = () => {
   }
   animate()
 
-  // Window resize handler
+  // Use ResizeObserver for accurate resize detection
+  resizeObserver = new ResizeObserver(() => {
+    updateRendererSize()
+  })
+  resizeObserver.observe(canvasContainer.value)
+
+  // Also handle window resize as fallback
   const handleResize = () => {
-    if (!canvasContainer.value) return
-    camera.aspect = canvasContainer.value.clientWidth / canvasContainer.value.clientHeight
-    camera.updateProjectionMatrix()
-    renderer.setSize(canvasContainer.value.clientWidth, canvasContainer.value.clientHeight)
+    updateRendererSize()
   }
   window.addEventListener('resize', handleResize)
 }
@@ -333,8 +367,9 @@ const loadModel = async () => {
       throw new Error('No URL available for loading the model')
     }
 
+    // Initialize scene if not already done
     if (!scene) {
-      throw new Error('Scene not initialized')
+      initScene()
     }
 
     const extension = getFileExtension()
@@ -606,9 +641,9 @@ const onWheel = (event: WheelEvent) => {
   event.preventDefault()
 }
 
-onMounted(() => {
+onMounted(async () => {
   initDarkMode()
-  initScene()
+  await nextTick()
 
   if (props.url) {
     loadModel()
@@ -627,6 +662,9 @@ watch(() => props.url, (newUrl) => {
 onBeforeUnmount(() => {
   if (animationFrameId !== null) {
     cancelAnimationFrame(animationFrameId)
+  }
+  if (resizeObserver) {
+    resizeObserver.disconnect()
   }
   if (renderer) {
     renderer.dispose()
