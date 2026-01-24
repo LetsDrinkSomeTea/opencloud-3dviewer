@@ -35,7 +35,7 @@
           <span class="ext:text-sm ext:text-gray-700">{{ $gettext('Show Axes') }}</span>
         </label>
 
-        <!-- Viewing Mode -->
+        <!-- Render Mode -->
         <div class="ext:border-t ext:pt-2">
           <div class="ext:text-xs ext:font-semibold ext:text-gray-600 ext:mb-1">
             {{ $gettext('Render Mode') }}
@@ -58,7 +58,7 @@
           </div>
           <div class="ext:flex ext:gap-2 ext:flex-wrap">
             <button 
-              v-for="color in ['#9333ea', '#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#6b7280']"
+              v-for="color in AVAILABLE_COLORS"
               :key="color"
               @click="changeModelColor(color)"
               :class="[
@@ -104,6 +104,39 @@ import { ThreeMFLoader } from 'three/examples/jsm/loaders/3MFLoader.js'
 
 const { $gettext } = useGettext()
 
+// Constants
+const AVAILABLE_COLORS = ['#9333ea', '#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#6b7280']
+const TARGET_MODEL_SIZE = 4
+const CAMERA_POSITION = { x: 6, y: 4, z: 6 }
+const GRID_SIZE = 10
+const AXES_SIZE = 5
+
+const MATERIAL_CONFIG = {
+  specular: 0x444444,
+  shininess: 30,
+  flatShading: false,
+  side: THREE.DoubleSide
+}
+
+const LIGHTING_PRESETS = {
+  bright: {
+    ambient: 0.4,
+    key: { intensity: 1.0, position: [5, 5, 5] as [number, number, number] },
+    fill: { intensity: 0.5, position: [-3, -2, -3] as [number, number, number] }
+  },
+  soft: {
+    ambient: 0.6,
+    key: { intensity: 0.6, position: [2, 4, 2] as [number, number, number] },
+    fill: { intensity: 0.4, position: [-2, -2, -2] as [number, number, number] }
+  },
+  dramatic: {
+    ambient: 0.2,
+    key: { intensity: 1.5, position: [4, 6, 3] as [number, number, number] },
+    fill: { intensity: 0.2, position: [-2, -1, -2] as [number, number, number] }
+  }
+}
+
+// Props
 const props = defineProps<{
   url?: string
   currentFileContext?: {
@@ -113,17 +146,17 @@ const props = defineProps<{
   }
 }>()
 
+// Refs
 const canvasContainer = ref<HTMLElement | null>(null)
 const loading = ref(true)
 const error = ref<string | null>(null)
-
-// UI controls
 const showGrid = ref(true)
 const showAxes = ref(true)
 const renderMode = ref<'solid' | 'wireframe' | 'points'>('solid')
-const modelColor = ref('#9333ea')
+const modelColor = ref(AVAILABLE_COLORS[0])
 const lightingMode = ref<'bright' | 'soft' | 'dramatic'>('bright')
 
+// Three.js scene objects
 let scene: THREE.Scene
 let camera: THREE.PerspectiveCamera
 let renderer: THREE.WebGLRenderer
@@ -139,57 +172,57 @@ let directionalLight2: THREE.DirectionalLight | null = null
 const initScene = () => {
   if (!canvasContainer.value) return
 
-  // Create scene
+  // Scene setup
   scene = new THREE.Scene()
   scene.background = new THREE.Color(0xf3f4f6)
 
-  // Create camera
+  // Camera setup
   camera = new THREE.PerspectiveCamera(
     75,
     canvasContainer.value.clientWidth / canvasContainer.value.clientHeight,
     0.1,
     1000
   )
-  camera.position.set(5, 5, 5)
+  camera.position.set(CAMERA_POSITION.x, CAMERA_POSITION.y, CAMERA_POSITION.z)
 
-  // Create renderer
+  // Renderer setup
   renderer = new THREE.WebGLRenderer({ antialias: true })
   renderer.setSize(canvasContainer.value.clientWidth, canvasContainer.value.clientHeight)
   renderer.setPixelRatio(window.devicePixelRatio)
   canvasContainer.value.appendChild(renderer.domElement)
 
-  // Add grid helper
-  gridHelper = new THREE.GridHelper(10, 10, 0xcccccc, 0xe0e0e0)
+  // Add helpers
+  gridHelper = new THREE.GridHelper(GRID_SIZE, GRID_SIZE, 0xcccccc, 0xe0e0e0)
   scene.add(gridHelper)
 
-  // Add axes helper
-  axesHelper = new THREE.AxesHelper(5)
+  axesHelper = new THREE.AxesHelper(AXES_SIZE)
   scene.add(axesHelper)
 
-  // Add lights with better setup for showing form
-  ambientLight = new THREE.AmbientLight(0xffffff, 0.4) // Reduced ambient for more contrast
+  // Lighting setup
+  const preset = LIGHTING_PRESETS[lightingMode.value]
+  
+  ambientLight = new THREE.AmbientLight(0xffffff, preset.ambient)
   scene.add(ambientLight)
 
-  directionalLight1 = new THREE.DirectionalLight(0xffffff, 1.0) // Key light
-  directionalLight1.position.set(5, 5, 5)
-  directionalLight1.castShadow = false
+  directionalLight1 = new THREE.DirectionalLight(0xffffff, preset.key.intensity)
+  directionalLight1.position.set(...preset.key.position)
   scene.add(directionalLight1)
 
-  directionalLight2 = new THREE.DirectionalLight(0xffffff, 0.5) // Fill light
-  directionalLight2.position.set(-3, -2, -3)
+  directionalLight2 = new THREE.DirectionalLight(0xffffff, preset.fill.intensity)
+  directionalLight2.position.set(...preset.fill.position)
   scene.add(directionalLight2)
 
-  // Add a third rim light for better edge definition
+  // Rim light for edge definition
   const rimLight = new THREE.DirectionalLight(0xffffff, 0.3)
   rimLight.position.set(0, -5, 0)
   scene.add(rimLight)
 
-  // Add controls
+  // Controls setup
   controls = new OrbitControls(camera, renderer.domElement)
   controls.enableDamping = true
   controls.dampingFactor = 0.05
 
-  // Start animation loop
+  // Animation loop
   const animate = () => {
     animationFrameId = requestAnimationFrame(animate)
     controls.update()
@@ -197,7 +230,7 @@ const initScene = () => {
   }
   animate()
 
-  // Handle window resize
+  // Window resize handler
   const handleResize = () => {
     if (!canvasContainer.value) return
     camera.aspect = canvasContainer.value.clientWidth / canvasContainer.value.clientHeight
@@ -207,33 +240,42 @@ const initScene = () => {
   window.addEventListener('resize', handleResize)
 }
 
+const createMaterial = () => {
+  const color = new THREE.Color(modelColor.value)
+  return new THREE.MeshPhongMaterial({
+    color,
+    ...MATERIAL_CONFIG
+  })
+}
+
+const getFileExtension = (): string => {
+  let extension = props.currentFileContext?.extension?.toLowerCase() || ''
+  if (!extension && props.url) {
+    const fileName = props.currentFileContext?.name || props.currentFileContext?.path || props.url
+    const match = fileName.match(/\.([^./\\]+)($|\?)/)
+    if (match) {
+      extension = match[1].toLowerCase()
+    }
+  }
+  return extension
+}
+
 const loadModel = async () => {
   loading.value = true
   error.value = null
 
   try {
-    // AppWrapperRoute with urlForResourceOptions: { disposition: 'inline' } provides a direct URL
     if (!props.url) {
       throw new Error('No URL available for loading the model')
     }
 
-    console.log('Loading model from URL:', props.url)
-
-    // Get file extension
-    let extension = props.currentFileContext?.extension?.toLowerCase() || ''
-    if (!extension) {
-      const fileName = props.currentFileContext?.name || props.currentFileContext?.path || props.url
-      const match = fileName.match(/\.([^./\\]+)($|\?)/)
-      if (match) {
-        extension = match[1].toLowerCase()
-      }
-    }
-
-    console.log('File extension:', extension)
-
-    // Scene should already be initialized from onMounted()
     if (!scene) {
       throw new Error('Scene not initialized')
+    }
+
+    const extension = getFileExtension()
+    if (!extension) {
+      throw new Error('Could not determine file extension')
     }
 
     // Clear previous model
@@ -243,25 +285,14 @@ const loadModel = async () => {
     }
 
     let object: THREE.Object3D | null = null
+    const material = createMaterial()
 
-    // Use the selected color for materials
-    const threeColor = new THREE.Color(modelColor.value)
-    
-    // Improved material with better shading properties
-    const sharedMaterial = new THREE.MeshPhongMaterial({
-      color: threeColor,
-      specular: 0x444444,  // More specular reflection
-      shininess: 30,        // Lower shininess for softer highlights
-      flatShading: false,   // Smooth shading
-      side: THREE.DoubleSide // Show both sides
-    })
-
-    // Load based on file extension using the URL directly
+    // Load based on file extension
     switch (extension) {
       case 'stl': {
         const loader = new STLLoader()
         const geometry = await loader.loadAsync(props.url)
-        object = new THREE.Mesh(geometry, sharedMaterial)
+        object = new THREE.Mesh(geometry, material)
         break
       }
       case 'obj': {
@@ -269,7 +300,7 @@ const loadModel = async () => {
         object = await loader.loadAsync(props.url)
         object.traverse((child) => {
           if (child instanceof THREE.Mesh) {
-            child.material = sharedMaterial
+            child.material = material
           }
         })
         break
@@ -277,15 +308,11 @@ const loadModel = async () => {
       case 'ply': {
         const loader = new PLYLoader()
         const geometry = await loader.loadAsync(props.url)
-        const material = new THREE.MeshPhongMaterial({
-          color: threeColor,
-          specular: 0x444444,
-          shininess: 30,
-          flatShading: false,
-          side: THREE.DoubleSide,
-          vertexColors: geometry.hasAttribute('color')
-        })
-        object = new THREE.Mesh(geometry, material)
+        const plyMaterial = createMaterial()
+        if (geometry.hasAttribute('color')) {
+          (plyMaterial as any).vertexColors = true
+        }
+        object = new THREE.Mesh(geometry, plyMaterial)
         break
       }
       case 'gltf':
@@ -301,13 +328,15 @@ const loadModel = async () => {
           object = await loader.loadAsync(props.url)
           object.traverse((child) => {
             if (child instanceof THREE.Mesh) {
-              child.material = sharedMaterial
+              child.material = material
             }
           })
         } catch (e) {
-          // 3MF files can have structural issues - provide helpful error
-          console.error('3MF parsing error:', e)
-          throw new Error(`3MF file parsing failed. The file may be corrupted or use unsupported features. Error: ${e instanceof Error ? e.message : String(e)}`)
+          throw new Error(
+            `3MF file parsing failed. The file may be corrupted or use unsupported features. ${
+              e instanceof Error ? e.message : String(e)
+            }`
+          )
         }
         break
       }
@@ -316,104 +345,88 @@ const loadModel = async () => {
     }
 
     if (object) {
-      // Add to scene first
-      scene.add(object)
-      currentModel = object
-
-      // Ensure all geometries have proper normals for lighting
-      object.traverse((child) => {
-        if (child instanceof THREE.Mesh) {
-          if (child.geometry) {
-            child.geometry.computeVertexNormals()
-          }
-        }
-      })
-
-      // Many 3D formats use Z-up, but Three.js uses Y-up
-      // Rotate -90 degrees around X-axis to convert Z-up to Y-up
-      object.rotation.x = -Math.PI / 2
-
-      // Calculate bounding box
-      const box = new THREE.Box3().setFromObject(object)
-      const size = box.getSize(new THREE.Vector3())
-      const center = box.getCenter(new THREE.Vector3())
-
-      // Scale to fit (target size around 4 units)
-      const maxDim = Math.max(size.x, size.y, size.z)
-      if (maxDim > 0) {
-        const targetSize = 4
-        const scale = targetSize / maxDim
-        object.scale.multiplyScalar(scale)
-      }
-
-      // Recalculate box after scaling
-      box.setFromObject(object)
-      const scaledCenter = box.getCenter(new THREE.Vector3())
-      const scaledSize = box.getSize(new THREE.Vector3())
-      
-      // Center the model horizontally (X and Z) but place bottom on the grid (Y=0)
-      object.position.x -= scaledCenter.x
-      object.position.z -= scaledCenter.z
-      object.position.y -= (scaledCenter.y - scaledSize.y / 2) // Bottom at Y=0
-
-      // Position camera to view the model
-      camera.position.set(6, 4, 6)
-      camera.lookAt(0, 0, 0) // Look at origin
-
-      if (controls) {
-        controls.target.set(0, 0, 0) // Orbit around origin
-        controls.update()
-      }
+      positionAndScaleModel(object)
     }
 
     loading.value = false
   } catch (err) {
-    console.error('Error loading 3D model:', err)
     error.value = err instanceof Error ? err.message : String(err)
     loading.value = false
   }
 }
 
-const onWheel = (event: WheelEvent) => {
-  event.preventDefault()
+const positionAndScaleModel = (object: THREE.Object3D) => {
+  scene.add(object)
+  currentModel = object
+
+  // Ensure proper normals for lighting
+  object.traverse((child) => {
+    if (child instanceof THREE.Mesh && child.geometry) {
+      child.geometry.computeVertexNormals()
+    }
+  })
+
+  // Convert from Z-up to Y-up coordinate system
+  object.rotation.x = -Math.PI / 2
+
+  // Calculate bounding box and scale
+  const box = new THREE.Box3().setFromObject(object)
+  const size = box.getSize(new THREE.Vector3())
+  const maxDim = Math.max(size.x, size.y, size.z)
+
+  if (maxDim > 0) {
+    const scale = TARGET_MODEL_SIZE / maxDim
+    object.scale.multiplyScalar(scale)
+  }
+
+  // Recalculate after scaling and position on grid
+  box.setFromObject(object)
+  const scaledCenter = box.getCenter(new THREE.Vector3())
+  const scaledSize = box.getSize(new THREE.Vector3())
+
+  object.position.x -= scaledCenter.x
+  object.position.z -= scaledCenter.z
+  object.position.y -= scaledCenter.y - scaledSize.y / 2 // Bottom at Y=0
+
+  // Reset camera and controls
+  camera.position.set(CAMERA_POSITION.x, CAMERA_POSITION.y, CAMERA_POSITION.z)
+  camera.lookAt(0, 0, 0)
+
+  if (controls) {
+    controls.target.set(0, 0, 0)
+    controls.update()
+  }
 }
 
 const toggleGrid = () => {
-  console.log('Toggle grid:', showGrid.value, gridHelper)
   if (gridHelper) {
     gridHelper.visible = showGrid.value
   }
 }
 
 const toggleAxes = () => {
-  console.log('Toggle axes:', showAxes.value, axesHelper)
   if (axesHelper) {
     axesHelper.visible = showAxes.value
   }
 }
 
 const changeRenderMode = () => {
-  console.log('Change render mode:', renderMode.value, currentModel)
-  if (!currentModel) {
-    console.log('No current model')
-    return
-  }
+  if (!currentModel) return
 
-  // Remove any existing point clouds first
+  // Remove existing point clouds
   const toRemove: THREE.Object3D[] = []
   currentModel.traverse((child) => {
     if (child instanceof THREE.Points) {
       toRemove.push(child)
     }
   })
-  toRemove.forEach(obj => {
-    if (obj.parent) obj.parent.remove(obj)
-  })
+  toRemove.forEach((obj) => obj.parent?.remove(obj))
 
+  // Apply render mode
   currentModel.traverse((child) => {
     if (child instanceof THREE.Mesh) {
       const material = child.material
-      
+
       switch (renderMode.value) {
         case 'solid':
           child.visible = true
@@ -421,16 +434,15 @@ const changeRenderMode = () => {
             (material as any).wireframe = false
           }
           break
-          
+
         case 'wireframe':
           child.visible = true
           if (material && 'wireframe' in material) {
             (material as any).wireframe = true
           }
           break
-          
+
         case 'points':
-          // Hide mesh and create point cloud
           child.visible = false
           const geometry = child.geometry
           const pointsMaterial = new THREE.PointsMaterial({
@@ -448,85 +460,50 @@ const changeRenderMode = () => {
       }
     }
   })
-
-  console.log('Render mode changed successfully')
 }
 
 const changeModelColor = (color: string) => {
-  console.log('Change model color:', color)
   modelColor.value = color
-  
-  if (!currentModel) {
-    console.log('No current model')
-    return
-  }
+
+  if (!currentModel) return
 
   const threeColor = new THREE.Color(color)
-  
+
   currentModel.traverse((child) => {
     if (child instanceof THREE.Mesh) {
       const material = child.material
       if (material && 'color' in material) {
         (material as any).color = threeColor.clone()
-        // Ensure good shading properties
         if ('specular' in material) {
-          (material as any).specular = new THREE.Color(0x444444)
+          (material as any).specular = new THREE.Color(MATERIAL_CONFIG.specular)
         }
         if ('shininess' in material) {
-          (material as any).shininess = 30
+          (material as any).shininess = MATERIAL_CONFIG.shininess
         }
       }
     }
   })
-  
-  console.log('Model color changed successfully')
 }
 
 const changeLighting = () => {
-  console.log('Change lighting:', lightingMode.value)
-  
-  if (!ambientLight || !directionalLight1 || !directionalLight2) {
-    console.log('Lights not initialized')
-    return
-  }
+  if (!ambientLight || !directionalLight1 || !directionalLight2) return
 
-  switch (lightingMode.value) {
-    case 'bright':
-      // Balanced lighting with good form visibility
-      ambientLight.intensity = 0.4
-      directionalLight1.intensity = 1.0
-      directionalLight1.position.set(5, 5, 5)
-      directionalLight2.intensity = 0.5
-      directionalLight2.position.set(-3, -2, -3)
-      break
-      
-    case 'soft':
-      // Soft, even lighting with gentle shadows
-      ambientLight.intensity = 0.6
-      directionalLight1.intensity = 0.6
-      directionalLight1.position.set(2, 4, 2)
-      directionalLight2.intensity = 0.4
-      directionalLight2.position.set(-2, -2, -2)
-      break
-      
-    case 'dramatic':
-      // Strong directional lighting with deep shadows
-      ambientLight.intensity = 0.2
-      directionalLight1.intensity = 1.5
-      directionalLight1.position.set(4, 6, 3)
-      directionalLight2.intensity = 0.2
-      directionalLight2.position.set(-2, -1, -2)
-      break
-  }
-  
-  console.log('Lighting changed successfully')
+  const preset = LIGHTING_PRESETS[lightingMode.value]
+
+  ambientLight.intensity = preset.ambient
+  directionalLight1.intensity = preset.key.intensity
+  directionalLight1.position.set(...preset.key.position)
+  directionalLight2.intensity = preset.fill.intensity
+  directionalLight2.position.set(...preset.fill.position)
+}
+
+const onWheel = (event: WheelEvent) => {
+  event.preventDefault()
 }
 
 onMounted(() => {
-  // Initialize scene first
   initScene()
-  
-  // Then load model if URL is available
+
   if (props.url) {
     loadModel()
   } else {
@@ -555,5 +532,5 @@ onBeforeUnmount(() => {
 </script>
 
 <style scoped>
-/* Component-specific styles if needed */
+/* Component styles handled by Tailwind classes */
 </style>
