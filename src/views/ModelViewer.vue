@@ -12,12 +12,12 @@
         <div class="ext:text-sm ext:font-semibold ext:text-gray-700 ext:mb-2">
           {{ $gettext('View Options') }}
         </div>
-        
+
         <!-- Grid Toggle -->
         <label class="ext:flex ext:items-center ext:cursor-pointer">
-          <input 
-            type="checkbox" 
-            v-model="showGrid" 
+          <input
+            type="checkbox"
+            v-model="showGrid"
             @change="toggleGrid"
             class="ext:mr-2"
           />
@@ -26,22 +26,38 @@
 
         <!-- Axes Toggle -->
         <label class="ext:flex ext:items-center ext:cursor-pointer">
-          <input 
-            type="checkbox" 
-            v-model="showAxes" 
+          <input
+            type="checkbox"
+            v-model="showAxes"
             @change="toggleAxes"
             class="ext:mr-2"
           />
           <span class="ext:text-sm ext:text-gray-700">{{ $gettext('Show Axes') }}</span>
         </label>
 
+        <!-- Up Axis Selection -->
+        <div class="ext:border-t ext:pt-2">
+          <div class="ext:text-xs ext:font-semibold ext:text-gray-600 ext:mb-1">
+            {{ $gettext('Up Axis') }}
+          </div>
+          <select
+            v-model="upAxis"
+            @change="changeUpAxis"
+            class="ext:w-full ext:text-sm ext:border ext:rounded ext:px-2 ext:py-1 ext:text-gray-700"
+          >
+            <option value="Y">{{ $gettext('Y-up') }}</option>
+            <option value="Z">{{ $gettext('Z-up (CAD/3D Print)') }}</option>
+            <option value="X">{{ $gettext('X-up') }}</option>
+          </select>
+        </div>
+
         <!-- Render Mode -->
         <div class="ext:border-t ext:pt-2">
           <div class="ext:text-xs ext:font-semibold ext:text-gray-600 ext:mb-1">
             {{ $gettext('Render Mode') }}
           </div>
-          <select 
-            v-model="renderMode" 
+          <select
+            v-model="renderMode"
             @change="changeRenderMode"
             class="ext:w-full ext:text-sm ext:border ext:rounded ext:px-2 ext:py-1 ext:text-gray-700"
           >
@@ -57,7 +73,7 @@
             {{ $gettext('Model Color') }}
           </div>
           <div class="ext:flex ext:gap-2 ext:flex-wrap">
-            <button 
+            <button
               v-for="color in AVAILABLE_COLORS"
               :key="color"
               @click="changeModelColor(color)"
@@ -76,8 +92,8 @@
           <div class="ext:text-xs ext:font-semibold ext:text-gray-600 ext:mb-1">
             {{ $gettext('Lighting') }}
           </div>
-          <select 
-            v-model="lightingMode" 
+          <select
+            v-model="lightingMode"
             @change="changeLighting"
             class="ext:w-full ext:text-sm ext:border ext:rounded ext:px-2 ext:py-1 ext:text-gray-700"
           >
@@ -107,7 +123,7 @@ const { $gettext } = useGettext()
 // Constants
 const AVAILABLE_COLORS = ['#9333ea', '#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#6b7280']
 const TARGET_MODEL_SIZE = 4
-const CAMERA_POSITION = { x: 6, y: 4, z: 6 }
+const CAMERA_POSITION = { x: 3, y: 2, z: 3 }
 const GRID_SIZE = 10
 const AXES_SIZE = 5
 
@@ -155,6 +171,7 @@ const showAxes = ref(true)
 const renderMode = ref<'solid' | 'wireframe' | 'points'>('solid')
 const modelColor = ref(AVAILABLE_COLORS[0])
 const lightingMode = ref<'bright' | 'soft' | 'dramatic'>('bright')
+const upAxis = ref<'Y' | 'Z' | 'X'>('Z') // Default Z-up (common for CAD/3D printing)
 
 // Three.js scene objects
 let scene: THREE.Scene
@@ -200,7 +217,7 @@ const initScene = () => {
 
   // Lighting setup
   const preset = LIGHTING_PRESETS[lightingMode.value]
-  
+
   ambientLight = new THREE.AmbientLight(0xffffff, preset.ambient)
   scene.add(ambientLight)
 
@@ -366,8 +383,8 @@ const positionAndScaleModel = (object: THREE.Object3D) => {
     }
   })
 
-  // Convert from Z-up to Y-up coordinate system
-  object.rotation.x = -Math.PI / 2
+  // Apply coordinate system conversion based on up axis
+  applyUpAxisRotation(object)
 
   // Calculate bounding box and scale
   const box = new THREE.Box3().setFromObject(object)
@@ -395,6 +412,27 @@ const positionAndScaleModel = (object: THREE.Object3D) => {
   if (controls) {
     controls.target.set(0, 0, 0)
     controls.update()
+  }
+}
+
+const applyUpAxisRotation = (object: THREE.Object3D) => {
+  // Reset rotation first
+  object.rotation.set(0, 0, 0)
+  
+  // Three.js uses Y-up by default
+  // Apply rotation to convert from other coordinate systems
+  switch (upAxis.value) {
+    case 'Y':
+      // No rotation needed - already Y-up
+      break
+    case 'Z':
+      // Z-up to Y-up: rotate -90° around X-axis
+      object.rotation.x = -Math.PI / 2
+      break
+    case 'X':
+      // X-up to Y-up: rotate 90° around Z-axis
+      object.rotation.z = Math.PI / 2
+      break
   }
 }
 
@@ -495,6 +533,22 @@ const changeLighting = () => {
   directionalLight1.position.set(...preset.key.position)
   directionalLight2.intensity = preset.fill.intensity
   directionalLight2.position.set(...preset.fill.position)
+}
+
+const changeUpAxis = () => {
+  if (!currentModel) return
+
+  // Reapply the rotation based on new up axis
+  applyUpAxisRotation(currentModel)
+
+  // Recalculate position to keep model on grid
+  const box = new THREE.Box3().setFromObject(currentModel)
+  const scaledCenter = box.getCenter(new THREE.Vector3())
+  const scaledSize = box.getSize(new THREE.Vector3())
+
+  currentModel.position.x -= scaledCenter.x
+  currentModel.position.z -= scaledCenter.z
+  currentModel.position.y -= scaledCenter.y - scaledSize.y / 2
 }
 
 const onWheel = (event: WheelEvent) => {
